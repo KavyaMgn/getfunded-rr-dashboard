@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R&R Lead Intelligence Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F4F6FB;padding:20px}
+.draft-banner{background:#FEF9E7;border:1.5px solid #F39C12;border-radius:8px;padding:8px 16px;margin-bottom:10px;font-size:12px;color:#7d5a0a;font-weight:600;text-align:center;letter-spacing:0.3px}
+.nav{background:#1E2761;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-radius:10px 10px 0 0}
+.nav-left{display:flex;flex-direction:column;gap:2px}
+.nav-title{font-size:15px;font-weight:600;color:#fff}
+.nav-sub{font-size:11px;color:#CADCFC}
+.nav-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.nav-right-top{font-size:11px;color:#CADCFC}
+.nav-right-bottom{font-size:10px;color:#F39C12;font-weight:600}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 8px;background:#eef0f7}
+.stat{border-radius:8px;padding:10px 12px;color:#fff;cursor:pointer;transition:opacity 0.15s}
+.stat:hover{opacity:0.85}
+.stat.active{outline:2px solid #fff;outline-offset:2px}
+.stat-val{font-size:22px;font-weight:600}
+.stat-lbl{font-size:11px;margin-top:2px}
+.stat-total{background:#1E2761}
+.stat-green{background:#27AE60}
+.stat-yellow{background:#F39C12}
+.stat-red{background:#E74C3C}
+.filter-bar{padding:6px 16px;background:#eef0f7;display:flex;gap:6px;flex-wrap:wrap;border-bottom:0.5px solid #D5D8DC}
+.filter-bar select,.filter-bar input{font-size:12px;padding:4px 8px;height:28px;border-radius:6px;border:0.5px solid #BDC3C7;background:#fff;color:#1A1A2E;flex:1;min-width:100px}
+.refresh-badge{font-size:11px;color:#7F8C8D;padding:4px 8px;white-space:nowrap;align-self:center}
+.excel-btn{background:#27AE60;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;height:28px}
+.excel-btn:hover{background:#219a52}
+.main{display:flex;background:#fff;border-radius:0 0 10px 10px;overflow:hidden;border:0.5px solid #D5D8DC;border-top:none}
+.table-wrap{flex:1;min-width:0;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:#1E2761}
+thead th{color:#CADCFC;font-weight:500;padding:8px 10px;text-align:left;font-size:11px;white-space:nowrap}
+tbody tr{border-bottom:0.5px solid #ECF0F1;cursor:pointer;transition:background 0.1s}
+tbody tr:hover{background:#F4F6FB}
+tbody tr.selected{background:#EEF4FF}
+td{padding:8px 10px;color:#1A1A2E;vertical-align:middle;white-space:nowrap}
+td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;color:#fff;min-width:52px;text-align:center}
+.badge-green{background:#27AE60}
+.badge-yellow{background:#F39C12}
+.badge-red{background:#E74C3C}
+.btn-details{background:#4A90D9;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer}
+.btn-details:hover{background:#3a7bc8}
+.detail-panel{width:360px;min-width:360px;border-left:0.5px solid #D5D8DC;display:none;flex-direction:column;background:#fff}
+.detail-panel.open{display:flex}
+.detail-header{background:#1E2761;color:#fff;padding:12px 14px}
+.detail-name{font-size:13px;font-weight:600;color:#fff}
+.detail-meta{font-size:11px;color:#CADCFC;margin-top:3px}
+.detail-header-top{display:flex;justify-content:space-between;align-items:flex-start}
+.close-btn{background:none;border:none;color:#CADCFC;cursor:pointer;font-size:16px;padding:0;line-height:1}
+.close-btn:hover{color:#fff}
+.detail-body{padding:12px 14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+.appeal-banner{background:#EAFAF1;border:0.5px solid #27AE60;border-radius:6px;padding:8px 12px;font-size:12px;color:#1a6e3a;font-weight:500}
+.appeal-closed{background:#FDEDEC;border:0.5px solid #E74C3C;border-radius:6px;padding:8px 12px;font-size:12px;color:#a93226;font-weight:500}
+.section-label{font-size:10px;font-weight:600;color:#7F8C8D;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.info-key{font-size:10px;color:#7F8C8D}
+.info-val{font-size:12px;font-weight:600;color:#1A1A2E;margin-top:1px}
+.verbatim-box{background:#FEF9E7;border:0.5px solid #F39C12;border-radius:6px;padding:8px 10px;font-size:11px;color:#1A1A2E;line-height:1.5}
+.plain-box{background:#F4F6FB;border-radius:6px;padding:8px 10px;font-size:12px;color:#1A1A2E;line-height:1.5}
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.action-btn{padding:7px 10px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.action-primary{background:#27AE60;color:#fff}
+.action-primary:hover{background:#219a52}
+.action-secondary{background:#4A90D9;color:#fff}
+.action-secondary:hover{background:#3a7bc8}
+.action-neutral{background:#F4F6FB;color:#1A1A2E;border:0.5px solid #BDC3C7}
+.action-neutral:hover{background:#ECF0F1}
+.empty-state{padding:40px;text-align:center;color:#7F8C8D;font-size:13px}
+.tag-appealing{font-size:10px;padding:2px 6px;background:#EAFAF1;color:#1a6e3a;border-radius:4px;border:0.5px solid #27AE60}
+.tag-not-appealing{font-size:10px;padding:2px 6px;background:#FDEDEC;color:#a93226;border-radius:4px;border:0.5px solid #E74C3C}
+.tag-review{font-size:10px;padding:2px 6px;background:#FEF9E7;color:#7d5a0a;border-radius:4px;border:0.5px solid #F39C12}
+.wave-note{font-size:10px;color:#7F8C8D;padding:4px 16px;background:#eef0f7;border-bottom:0.5px solid #D5D8DC}
+.wrapper{max-width:1300px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10)}
+</style>
+</head>
+<body>
+
+<div style="max-width:1300px;margin:0 auto">
+  <div class="draft-banner">⚠ DRAFT — FOR DISCUSSION ONLY &nbsp;|&nbsp; Data shown is a sample subset from Wave 48. Numbers will reflect live USAC data in the production system.</div>
+</div>
+
+<div class="wrapper">
+
+<div class="nav">
+  <div class="nav-left">
+    <span class="nav-title">R&R Lead Intelligence Dashboard</span>
+    <span class="nav-sub">Wave 48 — Thursday April 3, 2026 &nbsp;|&nbsp; Last refreshed: 7:02 AM</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-right-top">Data Service Corps</span>
+    <span class="nav-right-bottom">DRAFT — For Discussion Only</span>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat stat-total" onclick="filterBy('all')" id="stat-all">
+    <div class="stat-val" id="count-all">10</div>
+    <div class="stat-lbl">Total FRNs This Wave</div>
+  </div>
+  <div class="stat stat-green" onclick="filterBy('GREEN')" id="stat-green">
+    <div class="stat-val" id="count-green">5</div>
+    <div class="stat-lbl">Green Leads</div>
+  </div>
+  <div class="stat stat-yellow" onclick="filterBy('YELLOW')" id="stat-yellow">
+    <div class="stat-val" id="count-yellow">4</div>
+    <div class="stat-lbl">Yellow Leads</div>
+  </div>
+  <div class="stat stat-red" onclick="filterBy('RED')" id="stat-red">
+    <div class="stat-val" id="count-red">1</div>
+    <div class="stat-lbl">Red — Relationship</div>
+  </div>
+</div>
+
+<div class="wave-note">Showing Wave 48 denials only &nbsp;|&nbsp; Each row represents one Funding Request Number (FRN) — a school may appear multiple times with different FRNs</div>
+
+<div class="filter-bar">
+  <select id="filter-state" onchange="applyFilters()">
+    <option value="">State: All</option>
+    <option>AZ</option><option>TX</option><option>NY</option><option>CA</option><option>OH</option>
+  </select>
+  <select id="filter-cls" onchange="applyFilters()">
+    <option value="">Classification: All</option>
+    <option>GREEN</option><option>YELLOW</option><option>RED</option>
+  </select>
+  <select id="filter-reason" onchange="applyFilters()">
+    <option value="">Denial Reason: All</option>
+    <option>Documentation / PIA</option>
+    <option>Competitive Bidding</option>
+    <option>Eligibility</option>
+    <option>Contract / Timing</option>
+  </select>
+  <input type="text" id="filter-search" placeholder="Search school or FRN..." oninput="applyFilters()" style="max-width:180px">
+  <span class="refresh-badge">Next refresh: Thu Apr 10 at 7:00 AM</span>
+  <button class="excel-btn" onclick="alert('Excel download — available in production system')">⬇ Download Excel</button>
+</div>
+
+<div class="main" id="main-area">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>School Name</th>
+          <th>FRN</th>
+          <th>State</th>
+          <th>Denied $</th>
+          <th>Days Since Wave</th>
+          <th>Classification</th>
+          <th>Denial Reason</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state" style="display:none">No leads match your filters.</div>
+  </div>
+
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-header">
+      <div class="detail-header-top">
+        <div>
+          <div class="detail-name" id="d-name"></div>
+          <div class="detail-meta" id="d-meta"></div>
+        </div>
+        <button class="close-btn" onclick="closeDetail()">✕</button>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div id="d-appeal"></div>
+      <div>
+        <div class="section-label">FRN & School Information</div>
+        <div class="info-grid">
+          <div><div class="info-key">School name</div><div class="info-val" id="d-org"></div></div>
+          <div><div class="info-key">FRN</div><div class="info-val" id="d-frn" style="font-family:monospace;font-size:11px"></div></div>
+          <div><div class="info-key">State</div><div class="info-val" id="d-state"></div></div>
+          <div><div class="info-key">BEN</div><div class="info-val" id="d-ben" style="font-family:monospace;font-size:11px"></div></div>
+          <div><div class="info-key">Contact email</div><div class="info-val" id="d-email" style="word-break:break-all;font-size:11px"></div></div>
+          <div><div class="info-key">Denied amount</div><div class="info-val" id="d-amount"></div></div>
+          <div><div class="info-key">Denial type</div><div class="info-val" id="d-type"></div></div>
+          <div><div class="info-key">Appealability</div><div class="info-val" id="d-appealable"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">Denial remarks — verbatim (DR1)</div>
+        <div class="verbatim-box" id="d-verbatim"></div>
+      </div>
+      <div>
+        <div class="section-label">Plain language summary</div>
+        <div class="plain-box" id="d-plain"></div>
+      </div>
+      <div>
+        <div class="section-label">Actions</div>
+        <div class="action-row">
+          <button class="action-btn action-primary" onclick="alert('Email draft — available in production system')">Draft outreach email</button>
+          <button class="action-btn action-secondary" onclick="alert('Marked as contacted')">Mark as contacted</button>
+          <button class="action-btn action-neutral" onclick="alert('Note dialog — available in production system')">Add note</button>
+          <button class="action-btn action-neutral" onclick="alert('Brief download — available in production system')">Download brief</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// FRN-level data — each row is one funding request, not one school
+const leads = [
+  // Laveen Elementary — 1 FRN
+  {name:"Laveen Elementary District 59",frn:"2599044099",state:"AZ",amount:"$519,950",days:12,cls:"GREEN",reason:"Competitive Bidding",email:"erate@laveeneld.org",ben:"142995",type:"Full Denial",appealable:"Appealable",wave:48,verbatim:"DR1: The FRN is denied due to a competitive bidding violation. A new FCC Form 470 must be posted to the USAC website when the services being requested and/or the price of the original contract are modified. MR1: BEN 17048681-Laveen Traditional Academy has been added to FRN Line Item 2599044099.001.",plain:"This school modified their contract without re-posting Form 470. This is appealable if they can demonstrate the changes were within allowable scope."},
+
+  // Many Farms — 1 FRN
+  {name:"Many Farms High School",frn:"2599017297",state:"AZ",amount:"$47,376",days:28,cls:"GREEN",reason:"Documentation / PIA",email:"eugene.stevens@bie.edu",ben:"98866",type:"Full Denial",appealable:"Appealable",wave:48,verbatim:"DR1: The FRN is denied because the applicant failed to supply documentation to support the requested services. As a result, this FRN was denied.",plain:"The school did not provide enough documentation during the PIA review. Strong appeal candidate — they need to submit the missing paperwork."},
+
+  // Yeshiva — 3 FRNs (same BEN, different FRNs)
+  {name:"Yeshiva Toldos Yesuscher",frn:"2599061276",state:"NY",amount:"$33,822",days:35,cls:"GREEN",reason:"Documentation / PIA",email:"ytoldosy1536@gmail.com",ben:"17048458",type:"Full Denial",appealable:"Appealable",wave:48,verbatim:"DR1: The applicant failed to supply documentation to support the requested services for BEN 17048458. MR1: The Type of Internal Connection for FRN Line Item 2599061276.006 was modified from License to Wireless Data Distribution.",plain:"Missing documentation — appealable with the right supporting materials. Note: this school has 3 separate FRNs denied in this wave."},
+
+  {name:"Yeshiva Toldos Yesuscher",frn:"2599061282",state:"NY",amount:"$179,734",days:35,cls:"GREEN",reason:"Documentation / PIA",email:"ytoldosy1536@gmail.com",ben:"17048458",type:"Full Denial",appealable:"Appealable",wave:48,verbatim:"DR1: The applicant failed to supply documentation to support the requested services for BEN 17048458. DR2: The Category Two budget is $313,556.25. Your total requested Category Two pre-discount funding amount exceeds the budget by $273,476.25.",plain:"Missing documentation combined with a Category 2 budget overrun. The documentation issue is appealable. The budget overrun may require a modification."},
+
+  {name:"Yeshiva Toldos Yesuscher",frn:"2599061294",state:"NY",amount:"$100,000",days:35,cls:"GREEN",reason:"Documentation / PIA",email:"ytoldosy1536@gmail.com",ben:"17048458",type:"Full Denial",appealable:"Appealable",wave:48,verbatim:"DR1: The applicant failed to supply documentation to support the requested 240 for BEN 17048458. DR2: The Category Two budget for BEN 17048458 is $313,556.25. Your total requested Category Two pre-discount funding amount exceeds the Category Two Budget by $273,476.25.",plain:"Same documentation and Category 2 budget issue as the other FRNs for this school. All three should be appealed together."},
+
+  // Abilene — 1 FRN
+  {name:"Abilene Indep School District",frn:"2599062635",state:"TX",amount:"$120",days:45,cls:"YELLOW",reason:"Eligibility",email:"chall@csmcentral.com",ben:"142041",type:"Full Denial",appealable:"Review Required",wave:48,verbatim:"DR1: The FRN is denied because product(s) and service(s) being requested are ineligible items — Proactive Monitoring.",plain:"The requested services include items not eligible under E-Rate. Appeal window is still open but eligibility denials are harder to win."},
+
+  // Lorena — 1 FRN
+  {name:"Lorena Indep School District",frn:"2599013908",state:"TX",amount:"$5,125",days:52,cls:"YELLOW",reason:"Eligibility",email:"cisom@esc12.net",ben:"141113",type:"Full Denial",appealable:"Review Required",wave:48,verbatim:"DR1: The FRN is denied because product(s) and service(s) being requested are ineligible — Wi-Fi Hotspots Services and/or Equipment. See FCC 25-62.",plain:"Wi-Fi hotspot equipment was removed from the eligible services list in 2025. Relationship outreach recommended."},
+
+  // Elyria — 1 FRN
+  {name:"Elyria Public Library",frn:"2599055717",state:"OH",amount:"$3,505",days:70,cls:"YELLOW",reason:"Eligibility",email:"debby.perkins@elyrialibrary.org",ben:"129422",type:"Full Denial",appealable:"Review Required",wave:48,verbatim:"DR1: The FRN is denied because product(s) and service(s) being requested are ineligible — Wi-Fi Hotspots. See FCC 25-62.",plain:"Same Wi-Fi hotspot policy issue. At 70 days this is past the ideal appeal window — best approached as a relationship lead."},
+
+  // Lakes Educational — 1 FRN
+  {name:"Lakes Educational Technology Service",frn:"2599001283",state:"NY",amount:"$144,287",days:18,cls:"YELLOW",reason:"Competitive Bidding",email:"m@edutech.org",ben:"124968",type:"Full Denial",appealable:"Review Required",wave:48,verbatim:"DR1: FCC Rules require applicants to carefully consider all cost effective solutions. The applicant has violated the competitive bidding process.",plain:"Competitive bidding documentation was missing. Requires further review before pursuing."},
+
+  // Blanco — 1 FRN
+  {name:"Blanco Indep School District",frn:"2599053947",state:"TX",amount:"$17,082",days:22,cls:"RED",reason:"Competitive Bidding",email:"matthew.obryant@esc12.net",ben:"141691",type:"Full Denial",appealable:"Not Appealable",wave:48,verbatim:"DR1: The FRN is denied due to a competitive bidding violation — vendor not selected in accordance with program rules.",plain:"Non-appealable competitive bidding violation. Relationship building only."},
+];
+
+// Calculate stats from actual data
+function updateStats(data) {
+  document.getElementById('count-all').textContent = data.length;
+  document.getElementById('count-green').textContent = data.filter(l=>l.cls==='GREEN').length;
+  document.getElementById('count-yellow').textContent = data.filter(l=>l.cls==='YELLOW').length;
+  document.getElementById('count-red').textContent = data.filter(l=>l.cls==='RED').length;
+}
+
+let activeFilter = 'all';
+let selectedFrn = null;
+
+function filterBy(cls) {
+  activeFilter = cls;
+  document.querySelectorAll('.stat').forEach(s => s.classList.remove('active'));
+  document.getElementById('stat-' + (cls==='all'?'all':cls.toLowerCase())).classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const state = document.getElementById('filter-state').value;
+  const cls = document.getElementById('filter-cls').value;
+  const reason = document.getElementById('filter-reason').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+
+  const filtered = leads.filter(l => {
+    if (activeFilter !== 'all' && l.cls !== activeFilter) return false;
+    if (state && l.state !== state) return false;
+    if (cls && l.cls !== cls) return false;
+    if (reason && l.reason !== reason) return false;
+    if (search && !l.name.toLowerCase().includes(search) && !l.frn.includes(search)) return false;
+    return true;
+  });
+
+  updateStats(filtered);
+  renderTable(filtered);
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('table-body');
+  const empty = document.getElementById('empty-state');
+  if (data.length === 0) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = data.map(l => {
+    const bc = 'badge badge-' + l.cls.toLowerCase();
+    const rc = selectedFrn === l.frn ? 'selected' : '';
+    const idx = leads.indexOf(l);
+    return `<tr class="${rc}" onclick="openDetail(${idx})">
+      <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis">${l.name}</td>
+      <td class="frn">${l.frn}</td>
+      <td>${l.state}</td>
+      <td>${l.amount}</td>
+      <td>${l.days} days</td>
+      <td><span class="${bc}">${l.cls}</span></td>
+      <td style="color:#7F8C8D;max-width:130px;overflow:hidden;text-overflow:ellipsis">${l.reason}</td>
+      <td><button class="btn-details" onclick="event.stopPropagation();openDetail(${idx})">Details</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openDetail(idx) {
+  const l = leads[idx];
+  selectedFrn = l.frn;
+  document.getElementById('d-name').textContent = l.name;
+  document.getElementById('d-meta').textContent = l.state + '  |  BEN: ' + l.ben + '  |  Wave ' + l.wave;
+  const daysLeft = 60 - l.days;
+  const appealEl = document.getElementById('d-appeal');
+  if (daysLeft > 0) {
+    appealEl.className = 'appeal-banner';
+    appealEl.textContent = 'Appeal window: ' + daysLeft + ' days remaining (Deadline: ' + getDeadline(l.days) + ')';
+  } else {
+    appealEl.className = 'appeal-closed';
+    appealEl.textContent = 'Appeal window has closed — relationship outreach only';
+  }
+  document.getElementById('d-org').textContent = l.name;
+  document.getElementById('d-frn').textContent = l.frn;
+  document.getElementById('d-state').textContent = l.state;
+  document.getElementById('d-ben').textContent = l.ben;
+  document.getElementById('d-email').textContent = l.email;
+  document.getElementById('d-amount').textContent = l.amount;
+  document.getElementById('d-type').textContent = l.type;
+  const aEl = document.getElementById('d-appealable');
+  aEl.innerHTML = l.appealable === 'Appealable'
+    ? '<span class="tag-appealing">Appealable</span>'
+    : l.appealable === 'Not Appealable'
+    ? '<span class="tag-not-appealing">Not appealable</span>'
+    : '<span class="tag-review">Review required</span>';
+  document.getElementById('d-verbatim').textContent = l.verbatim;
+  document.getElementById('d-plain').textContent = l.plain;
+  document.getElementById('detail-panel').classList.add('open');
+  applyFilters();
+}
+
+function closeDetail() {
+  selectedFrn = null;
+  document.getElementById('detail-panel').classList.remove('open');
+  applyFilters();
+}
+
+function getDeadline(days) {
+  const d = new Date('2026-04-03');
+  d.setDate(d.getDate() + (60 - days));
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+}
+
+filterBy('all');
+</script>
+</body>
+</html>
