@@ -232,20 +232,11 @@ const QUERY = `SELECT DISTINCT funding_year,state,ben,organization_name,cnct_ema
 
 // ── CLASSIFICATION LOGIC ─────────────────────────────────────────
 function classifyLead(row) {
-  const remarks = (row.fcdl_comment_frn || '').toLowerCase();
   const days = calcDays(row.fcdl_letter_date);
+  const appealable = deriveAppealable(row.fcdl_comment_frn);
 
-  // Red — non-appealable reasons
-  if (remarks.includes('dr1') && (
-    remarks.includes('ineligible') ||
-    remarks.includes('wi-fi hotspot') ||
-    remarks.includes('cannot receive funding')
-  )) return 'RED';
-
-  // Yellow — appeal window closing or review required
-  if (days > 45) return 'YELLOW';
-
-  // Green — appealable within window
+  if (appealable === 'Not Appealable' || days > 60) return 'RED';
+  if (days > 30) return 'YELLOW';
   return 'GREEN';
 }
 
