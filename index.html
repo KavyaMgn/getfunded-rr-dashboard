@@ -136,24 +136,7 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
     <button class="excel-btn" onclick="alert('Excel download — available in production system')">⬇ Download Excel</button>
   </span>
 </div>
-
-<div class="filter-bar">
-<select id="filter-state" onchange="applyFilters()">
-    <option value="">State: All</option>
-  </select>
-  <select id="filter-reason" onchange="applyFilters()">
-    <option value="">Denial Reason: All</option>
-    <option>Documentation / PIA</option>
-    <option>Competitive Bidding</option>
-    <option>Eligibility</option>
-    <option>Contract / Timing</option>
-    <option>Discount Calculation</option>
-  </select>
-  <input type="text" id="filter-search" placeholder="Search school or FRN..." oninput="applyFilters()" style="max-width:180px">
-  <span class="refresh-badge" id="record-count">Loading...</span>
-  <button class="excel-btn" onclick="alert('Excel download — available in production system')">⬇ Download Excel</button>
-</div>
-
+  
 <div class="main" id="main-area">
   <div class="table-wrap">
     <div id="loading-state" class="loading">⏳ Fetching live data from USAC API...</div>
