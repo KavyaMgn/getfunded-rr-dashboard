@@ -25,11 +25,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat-green{background:#27AE60}
 .stat-yellow{background:#F39C12}
 .stat-red{background:#E74C3C}
-.filter-bar{padding:6px 16px;background:#eef0f7;display:flex;gap:6px;flex-wrap:wrap;border-bottom:0.5px solid #D5D8DC}
-.filter-bar select,.filter-bar input{font-size:12px;padding:4px 8px;height:28px;border-radius:6px;border:0.5px solid #BDC3C7;background:#fff;color:#1A1A2E;flex:1;min-width:100px}
 .refresh-badge{font-size:11px;color:#7F8C8D;padding:4px 8px;white-space:nowrap;align-self:center}
 .excel-btn{background:#27AE60;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;height:28px}
 .excel-btn:hover{background:#219a52}
+.wave-note{font-size:10px;color:#7F8C8D;background:#eef0f7;border-bottom:0.5px solid #D5D8DC;display:flex;justify-content:space-between;align-items:center;padding:4px 16px;}
 .main{display:flex;background:#fff;border-radius:0 0 10px 10px;overflow:hidden;border:0.5px solid #D5D8DC;border-top:none}
 .table-wrap{flex:1;min-width:0;overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -46,7 +45,7 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
 .badge-red{background:#E74C3C}
 .btn-details{background:#4A90D9;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer}
 .btn-details:hover{background:#3a7bc8}
-.detail-panel{width:360px;min-width:360px;border-left:0.5px solid #D5D8DC;display:none;flex-direction:column;background:#fff}
+.detail-panel{width:360px;min-width:360px;border-left:0.5px solid #D5D8DC;display:none;flex-direction:column;background:#fff;position:sticky;top:0;max-height:100vh;overflow-y:auto}
 .detail-panel.open{display:flex}
 .detail-header{background:#1E2761;color:#fff;padding:12px 14px}
 .detail-name{font-size:13px;font-weight:600;color:#fff}
@@ -62,7 +61,6 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
 .info-key{font-size:10px;color:#7F8C8D}
 .info-val{font-size:12px;font-weight:600;color:#1A1A2E;margin-top:1px}
 .verbatim-box{background:#FEF9E7;border:0.5px solid #F39C12;border-radius:6px;padding:8px 10px;font-size:11px;color:#1A1A2E;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.plain-box{background:#F4F6FB;border-radius:6px;padding:8px 10px;font-size:12px;color:#1A1A2E;line-height:1.5}
 .action-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .action-btn{padding:7px 10px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer}
 .action-primary{background:#27AE60;color:#fff}
@@ -75,11 +73,10 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
 .tag-appealing{font-size:10px;padding:2px 6px;background:#EAFAF1;color:#1a6e3a;border-radius:4px;border:0.5px solid #27AE60}
 .tag-not-appealing{font-size:10px;padding:2px 6px;background:#FDEDEC;color:#a93226;border-radius:4px;border:0.5px solid #E74C3C}
 .tag-review{font-size:10px;padding:2px 6px;background:#FEF9E7;color:#7d5a0a;border-radius:4px;border:0.5px solid #F39C12}
-.wave-note{font-size:10px;color:#7F8C8D;padding:4px 16px;background:#eef0f7;border-bottom:0.5px solid #D5D8DC}
 .wrapper{max-width:1300px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10)}
 .loading{padding:40px;text-align:center;color:#7F8C8D;font-size:13px}
 .error-state{padding:20px;text-align:center;color:#E74C3C;font-size:13px;background:#FDEDEC;border-radius:6px;margin:20px}
-  @media print {
+@media print {
   .badge-green{background:#27AE60 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .badge-yellow{background:#F39C12 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .badge-red{background:#E74C3C !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -88,6 +85,8 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
   .stat-red{background:#E74C3C !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .stat-total{background:#1E2761 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .nav{background:#1E2761 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .detail-panel{display:none}
+  .btn-details{display:none}
 }
 </style>
 </head>
@@ -129,14 +128,14 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
   </div>
 </div>
 
-<div class="wave-note" style="display:flex;justify-content:space-between;align-items:center;padding:4px 16px;">
-  <span id="wave-note">Loading live data from USAC API...</span>
+<div class="wave-note">
+  <span id="wave-note-text">Loading live data from USAC API...</span>
   <span style="display:flex;gap:8px;align-items:center;">
     <span class="refresh-badge" id="record-count">Loading...</span>
     <button class="excel-btn" onclick="alert('Excel download — available in production system')">⬇ Download Excel</button>
   </span>
 </div>
-  
+
 <div class="main" id="main-area">
   <div class="table-wrap">
     <div id="loading-state" class="loading">⏳ Fetching live data from USAC API...</div>
@@ -218,18 +217,15 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
 </div>
 
 <script>
-// ── USAC API CONFIG ──────────────────────────────────────────────
 const API_BASE = 'https://opendata.usac.org/resource/qdmp-ygft.json';
 const ENTITY_DATASET = '7i5i-83qf';
 const CONSULTANT_DATASET = 'x5px-esft';
 
 const QUERY = `SELECT DISTINCT funding_year,state,ben,organization_name,cnct_email,funding_request_number,total_pre_discount_costs,funding_commitment_request,form_471_frn_status_name,fcdl_comment_frn,wave_sequence_number,fcdl_letter_date,form_471_service_type_name,crn_data,@ent.physical_address,@ent.phone_number,@ent.email,@ent.account_administrator_name,@ent.general_contact_name,@ent.general_contact_email,application_number,@cnslt.cnslt_name,@cnslt.cnslt_phone,@cnslt.cnslt_email JOIN @${ENTITY_DATASET} AS @ent ON @ent.entity_number = ben LEFT OUTER JOIN @${CONSULTANT_DATASET} AS @cnslt ON @cnslt.application_number = application_number WHERE funding_year>='2025' AND form_471_frn_status_name='Denied' AND fcdl_letter_date >= '2026-01-01T00:00:00' ORDER BY fcdl_letter_date DESC, state ASC LIMIT 2000`;
 
-// ── CLASSIFICATION LOGIC ─────────────────────────────────────────
 function classifyLead(row) {
   const days = calcDays(row.fcdl_letter_date);
   const appealable = deriveAppealable(row.fcdl_comment_frn);
-
   if (appealable === 'Not Appealable' || days > 60) return 'RED';
   if (days > 30) return 'YELLOW';
   return 'GREEN';
@@ -266,7 +262,6 @@ function formatDate(dateStr) {
   return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
 }
 
-// ── DATA FETCH ───────────────────────────────────────────────────
 let leads = [];
 let activeFilter = 'all';
 let selectedFrn = null;
@@ -303,7 +298,6 @@ async function fetchData() {
       raw: row
     }));
 
-    // Populate state filter
     const states = [...new Set(leads.map(l => l.state))].sort();
     const stateSelect = document.getElementById('filter-state');
     states.forEach(s => {
@@ -315,7 +309,7 @@ async function fetchData() {
     document.getElementById('loading-state').style.display = 'none';
     document.getElementById('data-table').style.display = 'table';
     document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString();
-    document.getElementById('wave-note').textContent = `Live USAC data — ${leads.length} FRNs loaded | Each row is one Funding Request Number`;
+    document.getElementById('wave-note-text').textContent = `Live USAC data — ${leads.length} FRNs loaded | Each row is one Funding Request Number`;
     document.getElementById('record-count').textContent = leads.length + ' records loaded';
 
     filterBy('all');
@@ -323,10 +317,8 @@ async function fetchData() {
     document.getElementById('loading-state').style.display = 'none';
     const errEl = document.getElementById('error-state');
     errEl.style.display = 'block';
-    errEl.textContent = '⚠ Could not load live data: ' + err.message + '. This may be a CORS issue when running locally — deploy to GitHub Pages to test live data.';
-
-    // Fall back to showing empty state
-    document.getElementById('wave-note').textContent = 'Live data unavailable — deploy to GitHub Pages to enable API access';
+    errEl.textContent = '⚠ Could not load live data: ' + err.message;
+    document.getElementById('wave-note-text').textContent = 'Live data unavailable';
     updateStats([]);
   }
 }
@@ -339,7 +331,6 @@ function deriveAppealable(remarks) {
   return 'Review Required';
 }
 
-// ── RENDERING ────────────────────────────────────────────────────
 function updateStats(data) {
   document.getElementById('count-all').textContent = data.length;
   document.getElementById('count-green').textContent = data.filter(l=>l.cls==='GREEN').length;
@@ -376,7 +367,7 @@ function renderTable(data) {
   const empty = document.getElementById('empty-state');
   if (data.length === 0) { tbody.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display = 'none';
-  tbody.innerHTML = data.map((l,i) => {
+  tbody.innerHTML = data.map((l) => {
     const bc = 'badge badge-' + l.cls.toLowerCase();
     const rc = selectedFrn === l.frn ? 'selected' : '';
     const globalIdx = leads.indexOf(l);
@@ -444,9 +435,7 @@ function closeDetail() {
   applyFilters();
 }
 
-// ── INIT ─────────────────────────────────────────────────────────
 fetchData();
 </script>
 </body>
 </html>
-
