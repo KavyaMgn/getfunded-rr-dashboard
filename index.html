@@ -124,11 +124,6 @@ td.frn{font-family:monospace;font-size:11px;color:#7F8C8D}
 <div class="filter-bar">
   <select id="filter-state" onchange="applyFilters()">
     <option value="">State: All</option>
-  </select>
-  <select id="filter-cls" onchange="applyFilters()">
-    <option value="">Classification: All</option>
-    <option>GREEN</option><option>YELLOW</option><option>RED</option>
-  </select>
   <select id="filter-reason" onchange="applyFilters()">
     <option value="">Denial Reason: All</option>
     <option>Documentation / PIA</option>
@@ -228,7 +223,7 @@ const API_BASE = 'https://opendata.usac.org/resource/qdmp-ygft.json';
 const ENTITY_DATASET = '7i5i-83qf';
 const CONSULTANT_DATASET = 'x5px-esft';
 
-const QUERY = `SELECT DISTINCT funding_year,state,ben,organization_name,cnct_email,funding_request_number,total_pre_discount_costs,funding_commitment_request,form_471_frn_status_name,fcdl_comment_frn,wave_sequence_number,fcdl_letter_date,form_471_service_type_name,crn_data,@ent.physical_address,@ent.phone_number,@ent.email,@ent.account_administrator_name,@ent.general_contact_name,@ent.general_contact_email,application_number,@cnslt.cnslt_name,@cnslt.cnslt_phone,@cnslt.cnslt_email JOIN @${ENTITY_DATASET} AS @ent ON @ent.entity_number = ben LEFT OUTER JOIN @${CONSULTANT_DATASET} AS @cnslt ON @cnslt.application_number = application_number WHERE funding_year>='2025' AND form_471_frn_status_name='Denied' AND fcdl_letter_date >= '2026-01-01T00:00:00' ORDER BY fcdl_letter_date DESC, state ASC LIMIT 500`;
+const QUERY = `SELECT DISTINCT funding_year,state,ben,organization_name,cnct_email,funding_request_number,total_pre_discount_costs,funding_commitment_request,form_471_frn_status_name,fcdl_comment_frn,wave_sequence_number,fcdl_letter_date,form_471_service_type_name,crn_data,@ent.physical_address,@ent.phone_number,@ent.email,@ent.account_administrator_name,@ent.general_contact_name,@ent.general_contact_email,application_number,@cnslt.cnslt_name,@cnslt.cnslt_phone,@cnslt.cnslt_email JOIN @${ENTITY_DATASET} AS @ent ON @ent.entity_number = ben LEFT OUTER JOIN @${CONSULTANT_DATASET} AS @cnslt ON @cnslt.application_number = application_number WHERE funding_year>='2025' AND form_471_frn_status_name='Denied' AND fcdl_letter_date >= '2026-01-01T00:00:00' ORDER BY fcdl_letter_date DESC, state ASC LIMIT 2000`;
 
 // ── CLASSIFICATION LOGIC ─────────────────────────────────────────
 function classifyLead(row) {
@@ -361,14 +356,12 @@ function filterBy(cls) {
 
 function applyFilters() {
   const state = document.getElementById('filter-state').value;
-  const cls = document.getElementById('filter-cls').value;
   const reason = document.getElementById('filter-reason').value;
   const search = document.getElementById('filter-search').value.toLowerCase();
 
   const filtered = leads.filter(l => {
     if (activeFilter !== 'all' && l.cls !== activeFilter) return false;
     if (state && l.state !== state) return false;
-    if (cls && l.cls !== cls) return false;
     if (reason && l.reason !== reason) return false;
     if (search && !l.name.toLowerCase().includes(search) && !l.frn.includes(search)) return false;
     return true;
