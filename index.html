@@ -324,7 +324,7 @@ function deriveAppealable(remarks) {
   if (!remarks) return 'Review Required';
   const dr1 = remarks.split('||MR')[0].toLowerCase();
   if (dr1.includes('ineligible') || dr1.includes('wi-fi hotspot') || dr1.includes('cannot receive funding')) return 'Not Appealable';
-  if (r.includes('dr1') && (r.includes('documentation') || r.includes('competitive bidding') || r.includes('contract'))) return 'Appealable';
+  if (dr1.includes('dr1') && (dr1.includes('documentation') || dr1.includes('competitive bidding') || dr1.includes('contract'))) return 'Appealable';
   return 'Review Required';
 }
 
