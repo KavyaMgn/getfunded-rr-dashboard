@@ -290,6 +290,10 @@ function setView(v) {
 function selectState(abbr) {
   selectedState = abbr;
   updateSidebar();
+  d3.selectAll('.state-path')
+    .attr('stroke', d => FIPS[String(d.id).padStart(2,'0')] === abbr ? '#1E2761' : '#fff')
+    .attr('stroke-width', d => FIPS[String(d.id).padStart(2,'0')] === abbr ? 2.5 : 0.8)
+    .attr('opacity', d => FIPS[String(d.id).padStart(2,'0')] === abbr ? 1 : 0.85);
 }
 
 function showTooltip(event, abbr) {
