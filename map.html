@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GetFunded R&R — Lead Intelligence Map</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F4F6FB; color: #1E2761; }
+
+  .header {
+    background: #1E2761;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-title { color: white; font-size: 18px; font-weight: 700; }
+  .header-sub { color: #CADCFC; font-size: 12px; margin-top: 2px; }
+  .header-right { color: #CADCFC; font-size: 11px; text-align: right; }
+  .header-right span { color: #F39C12; font-weight: 700; display: block; }
+
+  .draft-banner {
+    background: #FEF9E7;
+    border-bottom: 1px solid #F39C12;
+    padding: 8px 24px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #7d5a0a;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 16px 24px;
+    background: #eef0f7;
+  }
+  .stat-box {
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .stat-box:hover { transform: scale(1.03); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .stat-box.active { ring: 2px solid white; transform: scale(1.05); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .stat-box .num { font-size: 28px; font-weight: 700; }
+  .stat-box .lbl { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0;
+    background: white;
+    margin: 0 24px 24px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .map-area { padding: 20px; position: relative; }
+  .map-title { font-size: 13px; font-weight: 700; color: #1E2761; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+
+  .filters { display: flex; gap: 8px; }
+  .filter-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid #ddd;
+    background: white;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #555;
+  }
+  .filter-btn:hover { border-color: #1E2761; color: #1E2761; }
+  .filter-btn.active-all { background: #1E2761; color: white; border-color: #1E2761; }
+  .filter-btn.active-green { background: #27AE60; color: white; border-color: #27AE60; }
+  .filter-btn.active-yellow { background: #F39C12; color: white; border-color: #F39C12; }
+  .filter-btn.active-red { background: #E74C3C; color: white; border-color: #E74C3C; }
+
+  #map-svg { width: 100%; height: 420px; }
+
+  .state-path { stroke: #fff; stroke-width: 0.8; cursor: pointer; transition: opacity 0.15s; }
+  .state-path:hover { opacity: 0.8; stroke-width: 1.5; stroke: #1E2761; }
+  .state-path.no-data { fill: #E8EDF5; }
+
+  .tooltip {
+    position: absolute;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    font-size: 12px;
+    min-width: 180px;
+    z-index: 100;
+    display: none;
+  }
+  .tooltip-state { font-weight: 700; font-size: 14px; color: #1E2761; margin-bottom: 8px; }
+  .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .tooltip-label { color: #666; }
+  .tooltip-val { font-weight: 600; }
+  .tooltip-divider { border: none; border-top: 1px solid #eee; margin: 6px 0; }
+  .tooltip-amount { color: #1E2761; font-weight: 700; }
+
+  .legend {
+    margin-top: 12px;
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: #555;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  .sidebar {
+    background: #F8F9FC;
+    border-left: 1px solid #eee;
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .sidebar-title { font-size: 12px; font-weight: 700; color: #1E2761; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .state-card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .state-card:hover { border-color: #1E2761; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .state-card.selected { border-color: #1E2761; background: #EEF2FF; }
+  .state-card-header { display: flex; justify-content: space-between; align-items: center; }
+  .state-name { font-weight: 700; font-size: 13px; }
+  .state-total { font-size: 11px; color: #666; }
+  .state-bars { display: flex; gap: 4px; margin-top: 6px; }
+  .bar { height: 4px; border-radius: 2px; min-width: 3px; }
+
+  .loading { text-align: center; padding: 60px; color: #999; font-size: 14px; }
+  .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #eee; border-top-color: #1E2761; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .footer { text-align: center; padding: 12px; font-size: 11px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">R&R Lead Intelligence — Map View</div>
+    <div class="header-sub">Live USAC Data | Denied FRNs by Geography</div>
+  </div>
+  <div class="header-right">
+    Data Service Corps
+    <span>DRAFT — For Discussion Only</span>
+  </div>
+</div>
+
+<div class="draft-banner">⚠ DRAFT — FOR DISCUSSION ONLY &nbsp;|&nbsp; Live data from USAC API via Flask backend</div>
+
+<div class="stats" id="stats">
+  <div class="stat-box active" style="background:#1E2761" id="btn-all" onclick="setFilter('all')">
+    <div class="num" id="s-total">—</div>
+    <div class="lbl">Total FRNs</div>
+  </div>
+  <div class="stat-box" style="background:#27AE60" id="btn-green" onclick="setFilter('green')">
+    <div class="num" id="s-green">—</div>
+    <div class="lbl">Green Leads (≤30 days)</div>
+  </div>
+  <div class="stat-box" style="background:#F39C12" id="btn-yellow" onclick="setFilter('yellow')">
+    <div class="num" id="s-yellow">—</div>
+    <div class="lbl">Yellow Leads (31-60 days)</div>
+  </div>
+  <div class="stat-box" style="background:#E74C3C" id="btn-red" onclick="setFilter('red')">
+    <div class="num" id="s-red">—</div>
+    <div class="lbl">Red — No Appeal</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="map-area">
+    <div class="map-title">
+      <span>Denied Schools by State</span>
+      <div class="filters">
+        <button class="filter-btn active-all" id="f-all" onclick="setFilter('all')">All</button>
+        <button class="filter-btn" id="f-green" onclick="setFilter('green')">🟢 Green + Yellow</button>
+        <button class="filter-btn" id="f-red" onclick="setFilter('red')">🔴 Red Only</button>
+      </div>
+    </div>
+    <div id="map-container" style="position:relative">
+      <div class="loading" id="loading"><span class="loading-spinner"></span>Loading live data...</div>
+      <svg id="map-svg" style="display:none"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#27AE60"></div>Has GREEN leads</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F39C12"></div>YELLOW only</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E74C3C"></div>RED only</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E8EDF5;border:1px solid #ccc"></div>No denials</div>
+      <div class="legend-item" style="margin-left:auto;color:#888;font-style:italic">Darker = more FRNs</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-title" id="sidebar-title">Top States by Leads</div>
+    <div id="sidebar-list"><div class="loading" style="padding:20px">Loading...</div></div>
+  </div>
+</div>
+
+<div class="footer">GetFunded R&R Dashboard &nbsp;|&nbsp; Data Service Corps &nbsp;|&nbsp; Live USAC data</div>
+
+<script>
+const API = 'https://getfunded-rr-api.onrender.com/api/leads';
+const TOPO = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
+
+let allLeads = [];
+let stateData = {};
+let currentFilter = 'all';
+let selectedState = null;
+
+// State FIPS to abbreviation mapping
+const FIPS = {
+  "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
+  "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
+  "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
+  "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
+  "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+  "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
+  "54":"WV","55":"WI","56":"WY","72":"PR"
+};
+
+const STATE_NAMES = {
+  AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",
+  CT:"Connecticut",DE:"Delaware",DC:"Washington D.C.",FL:"Florida",GA:"Georgia",
+  HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",
+  LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",
+  MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",
+  NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",
+  OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",
+  SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",
+  WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico"
+};
+
+function fmt(n) { return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+
+function processLeads(leads) {
+  const sd = {};
+  leads.forEach(l => {
+    const s = l['State'];
+    if (!s) return;
+    if (!sd[s]) sd[s] = { GREEN:0, YELLOW:0, RED:0, amount:0, leads:[] };
+    sd[s][l['Classification']]++;
+    sd[s].amount += (l['Denial Amount'] || 0);
+    sd[s].leads.push(l);
+  });
+  return sd;
+}
+
+function getStateColor(abbr, filter) {
+  const s = stateData[abbr];
+  if (!s) return '#E8EDF5';
+
+  if (filter === 'green') {
+    const count = s.GREEN + s.YELLOW;
+    if (count === 0) return '#E8EDF5';
+    const intensity = Math.min(0.3 + (count / 20) * 0.7, 1);
+    return s.GREEN > 0
+      ? `rgba(39,174,96,${intensity})`
+      : `rgba(243,156,18,${intensity})`;
+  }
+  if (filter === 'red') {
+    if (s.RED === 0) return '#E8EDF5';
+    const intensity = Math.min(0.3 + (s.RED / 100) * 0.7, 1);
+    return `rgba(231,76,60,${intensity})`;
+  }
+
+  // all
+  if (s.GREEN > 0) {
+    const intensity = Math.min(0.4 + (s.GREEN / 20) * 0.6, 1);
+    return `rgba(39,174,96,${intensity})`;
+  }
+  if (s.YELLOW > 0) {
+    const intensity = Math.min(0.4 + (s.YELLOW / 20) * 0.6, 1);
+    return `rgba(243,156,18,${intensity})`;
+  }
+  if (s.RED > 0) {
+    const intensity = Math.min(0.3 + (s.RED / 100) * 0.5, 0.7);
+    return `rgba(231,76,60,${intensity})`;
+  }
+  return '#E8EDF5';
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  ['all','green','red'].forEach(x => {
+    document.getElementById('f-'+x).className = 'filter-btn' + (x===f ? (' active-'+(f==='all'?'all':f==='green'?'green':'red')) : '');
+  });
+  updateMapColors();
+  updateSidebar();
+}
+
+function updateMapColors() {
+  d3.selectAll('.state-path').each(function(d) {
+    const abbr = FIPS[String(d.id).padStart(2,'0')];
+    d3.select(this).attr('fill', getStateColor(abbr, currentFilter));
+  });
+}
+
+function updateSidebar() {
+  const entries = Object.entries(stateData).map(([abbr, s]) => {
+    let count = currentFilter === 'green' ? s.GREEN + s.YELLOW
+               : currentFilter === 'red' ? s.RED
+               : s.GREEN + s.YELLOW + s.RED;
+    return { abbr, ...s, count };
+  }).filter(x => x.count > 0).sort((a,b) => b.count - a.count).slice(0, 20);
+
+  const title = currentFilter === 'green' ? 'Top States — Green + Yellow'
+               : currentFilter === 'red' ? 'Top States — Red Leads'
+               : 'Top States by Total Leads';
+  document.getElementById('sidebar-title').textContent = title;
+
+  const list = document.getElementById('sidebar-list');
+  list.innerHTML = entries.map(e => {
+    const total = e.GREEN + e.YELLOW + e.RED;
+    const gw = total ? Math.round(e.GREEN/total*100) : 0;
+    const yw = total ? Math.round(e.YELLOW/total*100) : 0;
+    const rw = total ? Math.round(e.RED/total*100) : 0;
+    return `
+      <div class="state-card ${selectedState===e.abbr?'selected':''}" onclick="selectState('${e.abbr}')">
+        <div class="state-card-header">
+          <span class="state-name">${e.abbr} — ${STATE_NAMES[e.abbr]||e.abbr}</span>
+          <span class="state-total">${e.count} FRNs</span>
+        </div>
+        <div class="state-bars">
+          ${gw>0?`<div class="bar" style="background:#27AE60;width:${gw}%"></div>`:''}
+          ${yw>0?`<div class="bar" style="background:#F39C12;width:${yw}%"></div>`:''}
+          ${rw>0?`<div class="bar" style="background:#E74C3C;width:${rw}%"></div>`:''}
+        </div>
+        <div style="font-size:10px;color:#888;margin-top:4px">
+          <span style="color:#27AE60;font-weight:600">${e.GREEN}G</span> &nbsp;
+          <span style="color:#F39C12;font-weight:600">${e.YELLOW}Y</span> &nbsp;
+          <span style="color:#E74C3C;font-weight:600">${e.RED}R</span> &nbsp;|&nbsp;
+          ${fmt(e.amount)}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectState(abbr) {
+  selectedState = abbr;
+  updateSidebar();
+}
+
+function showTooltip(event, abbr) {
+  const s = stateData[abbr];
+  const tt = document.getElementById('tooltip');
+  if (!s) { tt.style.display='none'; return; }
+  const total = s.GREEN + s.YELLOW + s.RED;
+  tt.innerHTML = `
+    <div class="tooltip-state">${STATE_NAMES[abbr]||abbr} (${abbr})</div>
+    <div class="tooltip-row"><span class="tooltip-label">🟢 Green (≤30 days)</span><span class="tooltip-val" style="color:#27AE60">${s.GREEN}</span></div>
+    <div class="tooltip-row"><span class="tooltip-label">🟡 Yellow (31-60 days)</span><span class="tooltip-val" style="color:#F39C12">${s.YELLOW}</span></div>
+    <div class="tooltip-row"><span class="tooltip-label">🔴 Red (>60 days)</span><span class="tooltip-val" style="color:#E74C3C">${s.RED}</span></div>
+    <hr class="tooltip-divider">
+    <div class="tooltip-row"><span class="tooltip-label">Total FRNs</span><span class="tooltip-val">${total}</span></div>
+    <div class="tooltip-row"><span class="tooltip-label">Total Denied $</span><span class="tooltip-amount">${fmt(s.amount)}</span></div>
+  `;
+  tt.style.display = 'block';
+  const rect = document.getElementById('map-container').getBoundingClientRect();
+  let x = event.clientX - rect.left + 12;
+  let y = event.clientY - rect.top - 10;
+  if (x + 200 > rect.width) x -= 210;
+  tt.style.left = x + 'px';
+  tt.style.top = y + 'px';
+}
+
+async function init() {
+  const [leadsRes, topoRes] = await Promise.all([
+    fetch(API).then(r=>r.json()),
+    fetch(TOPO).then(r=>r.json())
+  ]);
+
+  allLeads = leadsRes.records || [];
+  stateData = processLeads(allLeads);
+
+  // Update stat boxes
+  const total = allLeads.length;
+  const green = allLeads.filter(l=>l['Classification']==='GREEN').length;
+  const yellow = allLeads.filter(l=>l['Classification']==='YELLOW').length;
+  const red = allLeads.filter(l=>l['Classification']==='RED').length;
+  document.getElementById('s-total').textContent = total.toLocaleString();
+  document.getElementById('s-green').textContent = green.toLocaleString();
+  document.getElementById('s-yellow').textContent = yellow.toLocaleString();
+  document.getElementById('s-red').textContent = red.toLocaleString();
+
+  // Draw map
+  const svg = d3.select('#map-svg');
+  const width = document.getElementById('map-svg').clientWidth || 700;
+  const height = 420;
+
+  const projection = d3.geoAlbersUsa().fitSize([width, height],
+    topojson.feature(topoRes, topoRes.objects.states));
+  const path = d3.geoPath().projection(projection);
+  const states = topojson.feature(topoRes, topoRes.objects.states);
+
+  svg.selectAll('.state-path')
+    .data(states.features)
+    .enter().append('path')
+    .attr('class', 'state-path')
+    .attr('d', path)
+    .attr('fill', d => {
+      const abbr = FIPS[String(d.id).padStart(2,'0')];
+      return getStateColor(abbr, 'all');
+    })
+    .on('mousemove', function(event, d) {
+      const abbr = FIPS[String(d.id).padStart(2,'0')];
+      showTooltip(event, abbr);
+    })
+    .on('mouseleave', function() {
+      document.getElementById('tooltip').style.display = 'none';
+    })
+    .on('click', function(event, d) {
+      const abbr = FIPS[String(d.id).padStart(2,'0')];
+      selectState(abbr);
+    });
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('map-svg').style.display = 'block';
+  updateSidebar();
+}
+
+init().catch(e => {
+  document.getElementById('loading').innerHTML = '⚠ Error loading data. Make sure the API is running.';
+  console.error(e);
+});
+</script>
+</body>
+</html>
